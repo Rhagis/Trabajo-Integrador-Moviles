@@ -1,9 +1,10 @@
 
-import { StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Switch, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import {auth} from './firebase'
+
 
 
 
@@ -18,7 +19,10 @@ export default function App() {
   const [mostrarBoton, setMostrarBoton] = useState(true);
   const [titulo,setTitulo] = useState('Iniciar Sesion');
   const [modoOscuro, setModoOscuro] = useState(false);
+  const [name, setName] = useState('')
+  const [desc,setDesc] = useState('')
   
+
 
 
 
@@ -26,15 +30,16 @@ export default function App() {
 
   const registrarUsuario = async () => {
     try {
-      if(email != '' && password != ''){
+      if(email != '' && password != '' ){
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       await SecureStore.setItemAsync('uid', user.uid);
       setUsuario(user.uid);
       setEmail('');
       setPass('');
-      await SecureStore.setItemAsync('nombre', nombre)
-      await SecureStore.setItemAsync('descripciones', descrip)
+      await SecureStore.setItemAsync('nombre', name)
+      await SecureStore.setItemAsync('descripciones', desc)
+
       }else{
         alert('debes ingresar un email y contraseña para registrarte')
       }
@@ -56,8 +61,8 @@ export default function App() {
       setPass('');
       setMostrarBoton(false)
       setTitulo(`Bienvenido`)
-      setNombre(await SecureStore.getItemAsync('nombre'))
-      setDescrip(await SecureStore.getItemAsync('descripciones'))
+      setName('')
+      setDesc('')
       }else{
         alert('ingresa un email o contraseña valido para ingresar')
       }
@@ -74,8 +79,8 @@ export default function App() {
       setUsuario(null);
       setEmail('');
       setPass('');
-      setNombre('')
-      setDescrip('')
+      setName('')
+      setDesc('')
       alert('La sesion se cerro correctamente');
       setMostrarBoton(true)
       setTitulo('Iniciar Sesion')
@@ -85,11 +90,31 @@ export default function App() {
     }
   };
 
-  const editarNombre = async () => {
+  const editarDatos = async () => {
     try{
-      await SecureStore.setItemAsync('nombre', nombre)
-      await SecureStore.setItemAsync('descripciones', descrip)
-}
+      if(name != "" && desc != ""){
+      await SecureStore.setItemAsync('nombre', name)
+      await SecureStore.setItemAsync('descripciones', desc)
+      setNombre(name)
+      setDescrip(desc)
+      setName('')
+      setDesc('')
+      alert('Los cambios han sido guardados')
+      
+      }else if(name == "" && desc != ""){
+        await SecureStore.setItemAsync('descripciones', desc)
+        setDescrip(desc)
+        setDesc('')
+        alert('Los cambios han sido guardados')
+      }else if(name != "" && desc == ""){
+        await SecureStore.setItemAsync('nombre', name)
+        setNombre(name)
+        setName('')
+        alert('Los cambios han sido guardados')
+      }
+else{
+  alert('ingrese datos validos')
+}}
     catch(error){
       alert('Error: ' + error.message);
     }
@@ -115,13 +140,15 @@ useEffect(() => {
       setUsuario(uid)
       setMostrarBoton(false)
       setTitulo('Bienvenido')
-      setNombre(await SecureStore.getItemAsync('nombre'))
-      setDescrip(await SecureStore.getItemAsync('descripciones'))
+      setName(await SecureStore.getItemAsync('nombre'))
+      setDesc(await SecureStore.getItemAsync('descripciones'))
     };
     };
     verificarSesion();
 },
 []);
+
+
 
 
   return (
@@ -137,9 +164,9 @@ useEffect(() => {
       
       {mostrarBoton && <TextInput style={styles.textInput} placeholder='Password' placeholderTextColor = {modoOscuro ? '#FFFFFF' : '#1E1E1E'} value={password} onChangeText={setPass} secureTextEntry></TextInput>}
       
-      {<TextInput style={styles.textInput} placeholder='Nombre' placeholderTextColor = {modoOscuro ? '#FFFFFF' : '#1E1E1E'} value={nombre} onChangeText={setNombre} ></TextInput>}
+      {!mostrarBoton &&<TextInput style={styles.textInput} placeholder='Nombre' placeholderTextColor = {modoOscuro ? '#FFFFFF' : '#1E1E1E'} value={name} onChangeText={setName}></TextInput>}
       
-      {<TextInput style={styles.textInput} placeholder='Descripcion' placeholderTextColor = {modoOscuro ? '#FFFFFF' : '#1E1E1E'} value={descrip} onChangeText={setDescrip} ></TextInput>}
+      {!mostrarBoton && <TextInput style={styles.textInput} placeholder='Descripcion' placeholderTextColor = {modoOscuro ? '#FFFFFF' : '#1E1E1E'} value={desc}  onChangeText={setDesc} ></TextInput>}
 
       {mostrarBoton && <TouchableOpacity style={styles.button} onPress={loguearUsuario}>
         <Text style={styles.text}>Loguear</Text>
@@ -152,7 +179,7 @@ useEffect(() => {
       {!mostrarBoton && <TouchableOpacity style={styles.button} onPress={cerrarSesion}>
         <Text style={styles.text}>Cerrar Sesion</Text>
         </TouchableOpacity>}
-      {!mostrarBoton && <TouchableOpacity style={styles.button} onPress={editarNombre}>
+      {!mostrarBoton && <TouchableOpacity style={styles.button} onPress={editarDatos}>
         <Text style={styles.text}>Guardar Cambios</Text>
       </TouchableOpacity>}
 
@@ -161,9 +188,7 @@ useEffect(() => {
         </TouchableOpacity>}
 
       <View style={styles.toggle}>
-        <Text style={{ color: modoOscuro ? '#fff' : '#000', marginRight: 10 }}>
-          {modoOscuro ? 'Modo Claro' : 'Modo Oscuro'}
-        </Text>
+        <Image source={modoOscuro ? require('./assets/light_mode.png') : require('./assets/dark_mode.png')} style={{width:24, height:24, marginRight:5}}></Image>
         <Switch value={modoOscuro} onValueChange={setModoOscuro} trackColor={{ false: '#767577', true: '#81b0ff' }} thumbColor={modoOscuro ? '#f4f3f4' : '#f4f3f4'}/>
       </View>
 
